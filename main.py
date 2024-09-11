@@ -10,7 +10,7 @@ dbPath = './db/main.db'
 # exchanges
 exchangeList = ['dex.decred.org']
 # sleep time for requestes
-sleepTimer = 0.5
+sleepTimer = 0.1
 # logging configuration
 logPath = './logs/main.log'
 dbmgr.pathCheck(logPath)
