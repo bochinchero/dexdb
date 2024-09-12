@@ -9,7 +9,7 @@ def pathCheck(path):
     try:
         # verify isf file already exists
         if os.path.isfile(path):
-            logger.debug(f'pathCheck: file already exists {path}')
+            logger.debug(f'file already exists {path}')
             return
         else:
             # verify if folder does not exist
@@ -17,10 +17,10 @@ def pathCheck(path):
             if not os.path.isdir(folderPath):
                 # make the folder
                 os.makedirs(folderPath)
-                logger.info(f'pathCheck: created folder {folderPath}')
+                logger.info(f' created folder {folderPath}')
             return
     except os.error as error:
-        logger.error(f'pathCheck: {error} for {path} ')
+        logger.error(f'{error} for {path} ')
         return None
 
 
@@ -33,10 +33,10 @@ def dbConnect(path):
         con = sqlite3.connect(path)
         # get cursor
         cur = con.cursor()
-        logger.debug(f'dbConnect: connected to {path} ')
+        logger.debug(f'connected to {path} ')
         return con, cur
     except sqlite3.Error as error:
-        logger.error(f'dbConnect: {error} for {path} ')
+        logger.error(f'{error} for {path} ')
         return None, None
 
 
@@ -46,7 +46,7 @@ def createTable(cur,tableName,listCols):
         # verify if the table already exists
         results = cur.execute(f'SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'{tableName}\'')
         if results.fetchone() is not None:
-            logger.debug(f'createTable: verified table {tableName} exists.')
+            logger.debug(f'verified table {tableName} exists.')
             return True
         else:
             # declare the empty column string
@@ -58,17 +58,17 @@ def createTable(cur,tableName,listCols):
             commandStr = 'CREATE TABLE IF NOT EXISTS ' + tableName + ' ( ' + colStr[:-2] + ' ) '
             # execute
             cur.execute(commandStr)
-            logger.info(f'createTable:  table {tableName} created.')
+            logger.info(f'table {tableName} created.')
             return True
     except sqlite3.Error as error:
-        logger.error(f'createTable: {error}')
+        logger.error(f'{error}')
         return False
 
 
 # this function connects to a database, and sets up the required table structure if it doesn't exist
 def initalizeDB(path):
     try:
-        logger.info(f'initalizeDB: starting database initialization {path}')
+        logger.info(f'starting database initialization {path}')
         # connect to database
         conn, cur = dbConnect(path)
         # create exchanges table
@@ -124,7 +124,7 @@ def initalizeDB(path):
         conn.close()
         return True
     except Exception as err:
-        logger.error(f'initalizeDB: {err=}, {type(err)=}')
+        logger.error(f'{err=}, {type(err)=}')
         conn.close()
         raise
 
@@ -158,18 +158,18 @@ def insertRecords(path,tableName,inputData, colDict, replace=False):
         # execute
         result = conn.execute(queryStr)
         if result is None:
-            raise Exception(f'd could not be updated for {tableName}')
+            raise Exception(f'data could not be updated for {tableName}')
         # drop temp table
         conn.execute('DROP TABLE tempTable')
         # commit and close
         conn.commit()
         conn.close()
     except Exception as err:
-        logger.error(f'insertRecords: {err=}, {type(err)=}')
+        logger.error(f'{err=}, {type(err)=}')
         conn.close()
         raise
 
-def readTable(path,tableName,listCols=None):
+def readTable(path,tableName,listCols=None,whereClause=None):
     try:
         # connect to database
         conn, cur = dbConnect(path)
@@ -182,8 +182,13 @@ def readTable(path,tableName,listCols=None):
             for col in listCols:
                 listColStr += col + ' '
             listColStr = listColStr[:-1].replace(' ', ', ')
+        # add a clause for filtering data at the query level
+        if whereClause is None:
+            whereStr = ''
+        else:
+            whereStr = f'WHERE {whereClause}'
         # build the sql query
-        queryStr = f'Select {listColStr} from {tableName}'
+        queryStr = f'Select {listColStr} from {tableName} {whereStr}'
         # execute
         data = pd.read_sql_query(queryStr, conn)
         # close
@@ -191,6 +196,6 @@ def readTable(path,tableName,listCols=None):
         # return data
         return data
     except Exception as err:
-        logger.error(f'readTable: {err=}, {type(err)=}')
+        logger.error(f'{err=}, {type(err)=}')
         conn.close()
         raise

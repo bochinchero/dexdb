@@ -4,26 +4,28 @@ import logging
 import pandas as pd
 import datetime
 import time
+import configparser
 
-# database file path
-dbPath = './db/main.db'
-# exchanges
-exchangeList = ['dex.decred.org']
-# sleep time for requestes
-sleepTimer = 0.1
-# logging configuration
-logPath = './logs/main.log'
-dbmgr.pathCheck(logPath)
+
+# read configuration
+config = configparser.ConfigParser()
+config.read('config.conf')
+# parse required configuration parameters
+dbPath = config['dataHandling']['dbPath']
+logPath = config['dataHandling']['logPath']
+sleepTimer = float(config['dataHandling']['sleepTimer'])
+exchangeList = config['dataHandling']['exchanges'].split(',')
+
 logger = logging.getLogger(__name__)
-
 
 def initialize():
     # initalize log
     logging.basicConfig(handlers=[logging.FileHandler(logPath), logging.StreamHandler()],
-                        format='%(asctime)s %(levelname)-8s %(message)s',
+                        format='%(asctime)s %(levelname)-8s %(name)s:%(funcName)s: %(message)s',
                         level=logging.INFO,
                         datefmt='%Y-%m-%d %H:%M:%S')
     # connect to database, this will create the db and tables if it doesn't exist
+    dbmgr.pathCheck(logPath)
     dbmgr.initalizeDB(dbPath)
     logger.info('Initialization Complete')
 
@@ -33,7 +35,7 @@ def updateExchanges():
     dbmgr.insertRecords(dbPath, 'exchanges', pd.DataFrame({'name':exchangeList}),{'name':'name'})
     # read exchange data into a df
     dfExchanges = dbmgr.readTable(dbPath,'exchanges')
-    logger.info('updateExchanges Complete')
+    logger.info('process complete')
     return dfExchanges
 
 
@@ -72,16 +74,16 @@ def updateMarket(exchange):
         # insert data into marketconfig, replace if necessary.
         dbmgr.insertRecords(dbPath, 'marketConfig', markets, colDict,replace=True)
         output = markets
-        logger.info(f'updateMarket complete for {exchange["name"]}')
+        logger.info(f'complete for {exchange["name"]}')
         return output
     except Exception as err:
-        logger.error(f'updateMarket: {err=}, {type(err)=}')
+        logger.error(f'{err=}, {type(err)=}')
         return None
 
 
 def updateBooks(markets):
     if markets is None:
-        logger.error(f'updateBooks: markets is None, exiting.')
+        logger.error(f'markets is None, exiting.')
         return None
     # for every market we need to get the respective order book data from the api
     for idx, market in markets.iterrows():
@@ -99,13 +101,13 @@ def updateBooks(markets):
                        'qty':'qty'}
             # insert data into order book table, ignore if duplicate
             dbmgr.insertRecords(dbPath, 'books', books, colDict)
-            logger.info(f'updateBooks complete for {market["exchangeName"]} {market["name"]}')
+            logger.info(f'complete for {market["exchangeName"]} {market["name"]}')
             # pause to avoid too many request errors
             time.sleep(sleepTimer)
         except Exception as err:
-            logger.error(f'updateBooks: {err=}, {type(err)=}')
+            logger.error(f' {err=}, {type(err)=}')
             break
-    logger.info(f'updateBooks complete.')
+    logger.info(f'complete.')
     return True
 
 
@@ -129,13 +131,14 @@ def updateCandles(markets):
                        'endRates':'close'}
             # insert data into order book table, ignore if duplicate
             dbmgr.insertRecords(dbPath, 'candles', candleData, colDict, replace=True)
-            logger.info(f'updateCandles complete for {market["exchangeName"]} {market["name"]}')
+            logger.info(f'complete for {market["exchangeName"]} {market["name"]}')
             # pause to avoid too many request errors
             time.sleep(sleepTimer)
         except Exception as err:
-            logger.error(f'updateCandles: {err=}, {type(err)=}')
+            logger.error(f' {err=}, {type(err)=}')
             break
     return True
+
 
 if __name__ == '__main__':
     initialize()
@@ -145,5 +148,4 @@ if __name__ == '__main__':
         markets = updateMarket(row)
         orderbooks = updateBooks(markets)
         candles = updateCandles(markets)
-
     logger.info('Data collection completed.')

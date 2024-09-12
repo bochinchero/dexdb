@@ -39,11 +39,10 @@ def getMarkets(exchange):
         markets['base'] = markets['base'].apply(lambda x: assets.loc[x].symbol)
         # replace quote with strings
         markets['quote'] = markets['quote'].apply(lambda x: assets.loc[x].symbol)
-        logger.info(f'getMarkets: data processed for {exchange}')
+        logger.info(f'data processed for {exchange}')
         return markets
     except Exception as error:
-        print('getServerConfig:' + str(error))
-        logger.error(f'getMarkets: {str(error)} on exchange {exchange}')
+        logger.error(f' {str(error)} on exchange {exchange}')
 
 # this function gets order book data for a market
 def getOrderBook(exchange,base,quote):
@@ -61,11 +60,10 @@ def getOrderBook(exchange,base,quote):
         books['side'] = books['side'].apply(lambda x: 'buy' if x == 1 else 'sell')
         books = books.groupby('rate').agg({'qty': 'sum',
                                  'side': 'first'}).reset_index()
-        logger.debug(f'getOrderBook: data processed for {exchange} {base}/{quote}')
+        logger.debug(f'data processed for {exchange} {base}/{quote}')
         return books
     except Exception as error:
-        print('getOrderBook:' + str(error))
-        logger.error(f'getOrderBook: {str(error)} for {exchange} {base}/{quote}')
+        logger.error(f'{str(error)} for {exchange} {base}/{quote}')
 
 
 # this function gets candle data for a market
@@ -83,8 +81,7 @@ def getCandles(exchange, base,quote, period='24h'):
         # convert timestamps to something readable
         candles['startStamps'] = pd.to_datetime(candles['startStamps'], unit='ms')
         candles['endStamps'] = pd.to_datetime(candles['endStamps'], unit='ms')
-        logger.debug(f'getCandles: data processed for {exchange} {base}/{quote} {period}')
+        logger.debug(f'data processed for {exchange} {base}/{quote} {period}')
         return candles
     except Exception as error:
-        print('getCandles:' + str(error))
-        logger.error(f'getCandles: {str(error)} for {exchange} {base}/{quote} {period}')
+        logger.error(f'{str(error)} for {exchange} {base}/{quote} {period}')
