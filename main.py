@@ -62,7 +62,7 @@ def updateMarket(exchange):
         # get the market IDs from the database
         marketsTable = dbmgr.readTable(dbPath, 'markets').loc[lambda df: df['exchangeID']==exchange['ID'] ]
         # get the IDs from the marketstable into the marketdata
-        markets['marketID'] = marketsTable.loc[marketsTable['name'] == markets['name']].ID
+        markets = pd.merge(markets, marketsTable[['name','ID']], on='name',how='left').rename(columns={'ID':'marketID'})
         colDict = {'marketID' : 'marketID',
                    'epochlen':'epochlen',
                    'lotsize':'lotsize',
@@ -113,6 +113,9 @@ def updateBooks(markets):
 
 def updateCandles(markets):
     # for every market we need to get the respective order book data from the api
+    if markets is None:
+        logger.error(f'markets is None, exiting.')
+        return None
     for idx, market in markets.iterrows():
         try:
             # api call int o dataframe
@@ -146,6 +149,7 @@ if __name__ == '__main__':
     exchanges = updateExchanges()
     for index, row in exchanges.iterrows():
         markets = updateMarket(row)
+        print(markets)
         orderbooks = updateBooks(markets)
         candles = updateCandles(markets)
     logger.info('Data collection completed.')
