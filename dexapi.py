@@ -16,17 +16,43 @@ pd.set_option('display.max_columns', None)
 # list of exchange servers
 exchanges = ["dex.decred.org"]
 
+def checkKeys(keyList,data):
+    # checks that all keys exist in the data, it will return the key not found
+    # if the data is a list, grab the first element
+    if isinstance(data, list):
+        tdata = data[0]
+    else:
+        tdata = data
+    for key in keyList:
+        if key not in tdata:
+            raise Exception(f'{key} key not found')
+    return None
+
+
+def getResponse(url):
+    try:
+        # get response
+        response = requests.get(url,timeout=4)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = response.json()
+    except Exception as error:
+        logger.error(f'response error {str(error)} ')
+        raise
+    if data is not None:
+        return data
+    else:
+        raise Exception(f'no data returned')
 
 # this function gets a list of all markets for a server
 def getMarkets(exchange):
     try:
         url = "https://" + exchange + "/api/config"
         # get response
-        response = requests.get(url)
-        # handle error responses
-        if not (200 <= response.status_code < 300):
-            raise Exception(f'API Response error: {response.status_code}')
-        data = response.json()
+        data = getResponse(url)
+        # verify that the response has the desired keys
+        checkKeys(['assets','markets'], data)
+        checkKeys(['quote', 'base'], data['markets'])
+        checkKeys(['conversionFactor'], data['assets'][0]['unitinfo']['conventional'])
         # extract asset list
         assets = pd.json_normalize(data['assets']).set_index('id')
         # extract markets list
@@ -43,17 +69,18 @@ def getMarkets(exchange):
         return markets
     except Exception as error:
         logger.error(f' {str(error)} on exchange {exchange}')
+        return None
+
 
 # this function gets order book data for a market
 def getOrderBook(exchange,base,quote):
     try:
         url = "https://" + exchange + "/api/orderbook/" + base + '/' + quote
         # get response
-        response = requests.get(url)
-        # handle error responses
-        if not (200 <= response.status_code < 300):
-            raise Exception(f'API Response error: {response.status_code}')
-        data = response.json()
+        data = getResponse(url)
+        # verify that the response has the desired keys
+        checkKeys(['orders'], data)
+        checkKeys(['rate','qty','side'], data['orders'])
         # extract orders list
         books = pd.DataFrame.from_dict(data['orders'])[['rate','qty','side']].copy().sort_values(by=['rate'])
         # replace side with buy/sell
@@ -64,6 +91,7 @@ def getOrderBook(exchange,base,quote):
         return books
     except Exception as error:
         logger.error(f'{str(error)} for {exchange} {base}/{quote}')
+        return None
 
 
 # this function gets candle data for a market
@@ -71,11 +99,8 @@ def getCandles(exchange, base,quote, period='24h'):
     try:
         url = "https://" + exchange + "/api/candles/" + base + '/' + quote + '/' + period
         # get response
-        response = requests.get(url)
-        # handle error responses
-        if not (200 <= response.status_code < 300):
-            raise Exception(f'API Response error: {response.status_code}')
-        data = response.json()
+        data = getResponse(url)
+        checkKeys(['startStamps','endStamps'], data)
         # extract candles list
         candles = pd.DataFrame.from_dict(data)
         # convert timestamps to something readable

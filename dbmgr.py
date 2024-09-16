@@ -169,6 +169,7 @@ def insertRecords(path,tableName,inputData, colDict, replace=False):
         conn.close()
         raise
 
+
 def readTable(path,tableName,listCols=None,whereClause=None):
     try:
         # connect to database
@@ -198,4 +199,21 @@ def readTable(path,tableName,listCols=None,whereClause=None):
     except Exception as err:
         logger.error(f'{err=}, {type(err)=}')
         conn.close()
+        raise
+
+
+# this function is an open/free query into the specified database
+def freeQuery(path,queryStr):
+    try:
+        # connect to database
+        conn, cur = dbConnect(path)
+        # create a default column list if it isn't provided
+        # execute
+        data = pd.read_sql_query(queryStr, conn)
+        # close
+        conn.close()
+        # return data
+        return data
+    except Exception as err:
+        logger.error(f'{err=}, {type(err)=}')
         raise
