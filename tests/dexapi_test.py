@@ -89,6 +89,26 @@ def test_getOrderBooks(exchangeUrl,base,quote,expLogMessage,expException,returnN
                 assert actual is not None
     checkLog(expLogMessage,caplog)
 
+@pytest.mark.parametrize("exchangeUrl,expLogMessage,expException,returnNone,mockReturn", [
+    ("exchange", 'orders key not found', False, True,{}),
+    ("exchange", 'rate key not found', False, True, {'orders':''}),
+    ("exchange", 'qty key not found', False, True, {'orders':[{'rate':''}]}),
+    ("exchange", 'side key not found', False, True, {'orders': [{'rate': '','qty':''}]}),
+])
+def test_getOrderBook_mockResponse(exchangeUrl,expLogMessage,expException,returnNone,caplog,mockReturn,mocker):
+    mocker.patch('dexapi.getResponse', return_value=mockReturn)
+    with caplog.at_level(logging.DEBUG):
+        if expException:
+            with pytest.raises(Exception):
+                actual = dexapi.getOrderBook(exchangeUrl,'dcr','btc')
+        else:
+            actual = dexapi.getOrderBook(exchangeUrl,'dcr','btc')
+            if returnNone:
+                assert actual is None
+            else:
+                assert actual is not None
+    checkLog(expLogMessage,caplog)
+
 
 @pytest.mark.parametrize("exchangeUrl,base,quote,expLogMessage,expException,returnNone", [
     ("dex.decred.org",'dcr','btc', 'data processed for', False, False),
@@ -102,6 +122,25 @@ def test_getCandles(exchangeUrl,base,quote,expLogMessage,expException,returnNone
                 actual = dexapi.getCandles(exchangeUrl,base,quote)
         else:
             actual = dexapi.getCandles(exchangeUrl,base,quote)
+            if returnNone:
+                assert actual is None
+            else:
+                assert actual is not None
+    checkLog(expLogMessage,caplog)
+
+
+@pytest.mark.parametrize("exchangeUrl,expLogMessage,expException,returnNone,mockReturn", [
+    ("exchange", 'startStamps key not found', False, True,{}),
+    ("exchange", 'endStamps key not found', False, True, {'startStamps':''}),
+])
+def test_getCandles_mockResponse(exchangeUrl,expLogMessage,expException,returnNone,caplog,mockReturn,mocker):
+    mocker.patch('dexapi.getResponse', return_value=mockReturn)
+    with caplog.at_level(logging.DEBUG):
+        if expException:
+            with pytest.raises(Exception):
+                actual = dexapi.getCandles(exchangeUrl,'dcr','btc')
+        else:
+            actual = dexapi.getCandles(exchangeUrl,'dcr','btc')
             if returnNone:
                 assert actual is None
             else:

@@ -43,6 +43,7 @@ def getResponse(url):
     else:
         raise Exception(f'no data returned')
 
+
 # this function gets a list of all markets for a server
 def getMarkets(exchange):
     try:
@@ -110,3 +111,4 @@ def getCandles(exchange, base,quote, period='24h'):
         return candles
     except Exception as error:
         logger.error(f'{str(error)} for {exchange} {base}/{quote} {period}')
+        return None

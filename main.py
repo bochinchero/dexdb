@@ -62,7 +62,7 @@ def updateMarket(exchange):
         # get the market IDs from the database
         marketsTable = dbmgr.readTable(dbPath, 'markets').loc[lambda df: df['exchangeID']==exchange['ID'] ]
         # get the IDs from the marketstable into the marketdata
-        markets = pd.merge(markets, marketsTable[['name','ID']], on='name',how='left').rename(columns={'ID':'marketID'})
+        marketData = pd.merge(markets, marketsTable[['name','ID']], on='name',how='left').rename(columns={'ID':'marketID'})
         colDict = {'marketID' : 'marketID',
                    'epochlen':'epochlen',
                    'lotsize':'lotsize',
@@ -72,8 +72,8 @@ def updateMarket(exchange):
                    'quoteConversionFactor': 'quoteConversionFactor',
                    'LastUpdated': 'LastUpdated'}
         # insert data into marketconfig, replace if necessary.
-        dbmgr.insertRecords(dbPath, 'marketConfig', markets, colDict,replace=True)
-        output = markets
+        dbmgr.insertRecords(dbPath, 'marketConfig', marketData, colDict,replace=True)
+        output = marketData
         logger.info(f'complete for {exchange["name"]}')
         return output
     except Exception as err:
